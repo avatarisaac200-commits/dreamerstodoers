@@ -146,7 +146,7 @@ async function loadImpactFootprints() {
   if (!container) return;
 
   try {
-    const response = await fetch("/api/impact-footprints");
+    const response = await fetch("/impact-footprints-data.json");
     if (!response.ok) {
       throw new Error("Request failed");
     }
