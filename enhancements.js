@@ -95,7 +95,7 @@ async function loadImpactFootprints() {
 function renderImpactProjects(facilitatorName) {
   const facilitator = facilitatorImpactMap.get(facilitatorName);
   if (!facilitator || !Array.isArray(facilitator.projects) || !facilitator.projects.length) {
-    return '<div class="facilitator-impact-empty">Impact footprints for this facilitator will appear here soon.</div>';
+    return '<div class="facilitator-impact-empty">This facilitator\'s impact footprints will appear here soon.</div>';
   }
 
   return facilitator.projects
