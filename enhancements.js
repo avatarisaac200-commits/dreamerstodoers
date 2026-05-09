@@ -26,6 +26,14 @@ const facilitators = [
 ];
 
 let facilitatorImpactMap = new Map();
+let facilitatorImpactError = false;
+
+function normalizeKey(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
 
 function escapeHtml(text) {
   return String(text)
@@ -83,17 +91,31 @@ async function loadImpactFootprints() {
     if (!response.ok) throw new Error("Request failed");
 
     const data = await response.json();
-    const items = Array.isArray(data.facilitators) ? data.facilitators : [];
-    facilitatorImpactMap = new Map(items.map((item) => [item.name, item]));
+    const items = Array.isArray(data.facilitators)
+      ? data.facilitators
+      : Array.isArray(data)
+        ? data
+        : [];
+    facilitatorImpactMap = new Map(
+      items
+        .filter((item) => item && item.name)
+        .map((item) => [normalizeKey(item.name), item])
+    );
+    facilitatorImpactError = false;
   } catch {
     facilitatorImpactMap = new Map();
+    facilitatorImpactError = true;
   }
 
   return facilitatorImpactMap;
 }
 
-function renderImpactProjects(facilitatorName) {
-  const facilitator = facilitatorImpactMap.get(facilitatorName);
+function renderImpactProjects(facilitatorName, impactMap = facilitatorImpactMap) {
+  const facilitator = impactMap.get(normalizeKey(facilitatorName));
+  if (facilitatorImpactError) {
+    return '<div class="facilitator-impact-empty">Impact footprints could not be loaded right now. Please refresh and try again.</div>';
+  }
+
   if (!facilitator || !Array.isArray(facilitator.projects) || !facilitator.projects.length) {
     return '<div class="facilitator-impact-empty">This facilitator\'s impact footprints will appear here soon.</div>';
   }
@@ -126,7 +148,7 @@ async function injectFacilitators() {
   const registerSection = document.getElementById("register");
   if (!registerSection) return;
 
-  const [bios] = await Promise.all([
+  const [bios, impactMap] = await Promise.all([
     Promise.all(facilitators.map((item) => readBio(item.bioFile))),
     loadImpactFootprints(),
   ]);
@@ -148,7 +170,8 @@ async function injectFacilitators() {
             <div class="facilitator-impact-block">
               <div class="facilitator-impact-label">Impact Footprint</div>
               <div class="facilitator-impact-list">${renderImpactProjects(
-                facilitator.name
+                facilitator.name,
+                impactMap
               )}</div>
             </div>
           </div>
@@ -400,6 +423,7 @@ function setupFormHandler() {
 
 document.addEventListener("DOMContentLoaded", async () => {
   updateStaticContent();
+  await injectFacilitators();
   setupCountdown();
   setupScrollReveal();
   setupSuccessOverlay();
